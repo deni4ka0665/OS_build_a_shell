@@ -216,17 +216,25 @@ int step1(bool showPrompt)
 
 int shell(bool showPrompt)
 {
-  //* <- add one '/' in front of the other '/' to switch from step1 to the normal code
   while (cin.good())
   {
-    string commandLine = request_command_line(showPrompt);
-    Expression expression = parse_command_line(commandLine);
-    int rc = execute_expression(expression);
-    if (rc != 0)
-      cerr << strerror(rc) << endl;
+    pid_t pid = fork();
+    if (pid == 0)
+    {
+      string commandLine = request_command_line(showPrompt);
+      Expression expression = parse_command_line(commandLine);
+
+      int rc = execute_expression(expression);
+
+      if (rc != 0)
+      {
+        cerr << strerror(rc) << endl;
+      }
+    }
+    else
+    {
+      wait(NULL);
+    }
   }
   return 0;
-  /*/
-  return step1(showPrompt);
-  //*/
 }
