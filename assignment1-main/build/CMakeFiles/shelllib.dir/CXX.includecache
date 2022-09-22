@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/mnt/c/Users/NEW/Documents/premaster/OS/week 1/assignment1-main/shell.cpp
+iostream
+-
+unistd.h
+-
+sys/wait.h
+-
+stdlib.h
+-
+stdio.h
+-
+errno.h
+-
+sys/param.h
+-
+signal.h
+-
+string.h
+-
+assert.h
+-
+sys/types.h
+-
+sys/stat.h
+-
+fcntl.h
+-
+vector
+-
+list
+-
+optional
+-
+

@@ -1,0 +1,8 @@
+{
+	"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+	"files.associations": {
+		"iostream": "cpp",
+		"list": "cpp"
+	},
+	"cmake.sourceDirectory": "/mnt/c/Users/NEW/Documents/premaster/OS/week 1/assignment1-main"
+}

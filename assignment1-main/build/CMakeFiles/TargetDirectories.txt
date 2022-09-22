@@ -1,0 +1,4 @@
+/mnt/c/Users/NEW/Documents/premaster/OS/week 1/assignment1-main/build/CMakeFiles/rebuild_cache.dir
+/mnt/c/Users/NEW/Documents/premaster/OS/week 1/assignment1-main/build/CMakeFiles/edit_cache.dir
+/mnt/c/Users/NEW/Documents/premaster/OS/week 1/assignment1-main/build/CMakeFiles/shell.dir
+/mnt/c/Users/NEW/Documents/premaster/OS/week 1/assignment1-main/build/CMakeFiles/shelllib.dir

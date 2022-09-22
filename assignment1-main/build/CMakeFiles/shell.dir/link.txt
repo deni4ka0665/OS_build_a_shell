@@ -1,0 +1,1 @@
+/usr/bin/g++   -Wall -g  -rdynamic CMakeFiles/shell.dir/main.cpp.o  -o shell  libshelllib.a 
