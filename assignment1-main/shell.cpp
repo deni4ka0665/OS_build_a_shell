@@ -226,9 +226,9 @@ int shell(bool showPrompt)
 
       int rc = execute_expression(expression);
 
-      if (rc != 0)
+      if (rc == 0)
       {
-        cerr << strerror(rc) << endl;
+        cout << "Not a command, please don't crash my shell :)" << endl;
       }
     }
     else
