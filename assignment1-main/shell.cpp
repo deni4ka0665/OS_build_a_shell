@@ -233,6 +233,7 @@ int shell(bool showPrompt)
     }
     else
     {
+      // test
       wait(NULL);
     }
   }
