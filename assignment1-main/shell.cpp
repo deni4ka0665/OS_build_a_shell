@@ -168,15 +168,38 @@ int execute_expression(Expression &expression)
   if (expression.commands.size() == 0)
     return EINVAL;
 
-  // Handle intern commands (like 'cd' and 'exit')
+  if (expression.commands[0].parts.size() > 1)
+  {
+    if (expression.commands[0].parts[0] == "cd")
+    {
+      string newDirectory = expression.commands[0].parts[1];
 
-  // External commands, executed with fork():
-  // Loop over all commandos, and connect the output and input of the forked processes
+      int rc = chdir(newDirectory.c_str());
 
-  // For now, we just execute the first command in the expression. Disable.
-  execute_command(expression.commands[0]);
+      // char tmp[256]; // DO NOT DELETE, code to delete current working dir;
+      // getcwd(tmp, 256); // DO NOT DELETE, code to delete current working dir;
+      if (rc < 0)
+      {
+        cout << "Something went wrong changing the current directory :)" << endl;
+        return 0;
+      }
 
-  return 0;
+      cout << "Current working directory changed to: " << newDirectory << endl;
+      return rc;
+    }
+    return 0;
+  }
+  else
+  {
+    int rc = execute_command(expression.commands[0]);
+    if (rc == -1)
+    {
+      cout << "Not a command, please don't crash my shell :)" << endl;
+      return 0;
+    }
+
+    return rc;
+  }
 }
 
 // framework for executing "date | tail -c 5" using raw commands
@@ -225,11 +248,6 @@ int shell(bool showPrompt)
       Expression expression = parse_command_line(commandLine);
 
       int rc = execute_expression(expression);
-
-      if (rc == 0)
-      {
-        cout << "Not a command, please don't crash my shell :)" << endl;
-      }
     }
     else
     {
