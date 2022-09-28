@@ -164,21 +164,6 @@ Expression parse_command_line(string commandLine)
   return expression;
 }
 
-void *task1(void *arg)
-{
-  Expression exp = *(Expression *)arg;
-  if (exp.commands.size() == 0)
-    return 0;
-
-  std::future<int> newThread = std::async(std::launch::async, execute_command, exp.commands[0]);
-
-  cout << "Hello worldk 2" << endl;
-  if (newThread.get() < 0)
-  {
-    cout << "Oops,the command failed, please try again  :)" << endl;
-  }
-}
-
 int execute_expression(Expression &expression)
 {
 
@@ -205,20 +190,18 @@ int execute_expression(Expression &expression)
       cout << "Current working directory changed to: " << newDirectory << endl;
       return rc;
     }
-
-    int rc = execute_command(expression.commands[0]);
-    return rc;
-  }
-  else
-  {
-    int rc = execute_command(expression.commands[0]);
-    if (rc == -1)
+    else
     {
-      cout << "Not a command, please don't crash my shell :)" << endl;
-      return 0;
-    }
+      int rc = execute_command(expression.commands[0]);
+      if (rc == -1)
+      {
+        cout << "Not a command, please don't crash my shell :)" << endl;
+        return 0;
+      }
 
-    return rc;
+      return rc;
+    }
+    return 0;
   }
 }
 
@@ -273,7 +256,6 @@ int shell(bool showPrompt)
       if (expression.background)
       {
         pid_t pid2 = fork();
-        cout << pid2 + "grandchild" << endl;
         if (pid2 == 0)
         {
           setpgid(0, 0);
