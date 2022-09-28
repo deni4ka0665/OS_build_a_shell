@@ -17,7 +17,6 @@
 
 // function/class definitions you are going to use
 #include <iostream>
-#include <unistd.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,6 +25,9 @@
 #include <signal.h>
 #include <string.h>
 #include <assert.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <future>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -164,19 +166,47 @@ Expression parse_command_line(string commandLine)
 
 int execute_expression(Expression &expression)
 {
+
   // Check for empty expression
   if (expression.commands.size() == 0)
     return EINVAL;
 
-  // Handle intern commands (like 'cd' and 'exit')
+  if (expression.commands[0].parts.size() > 0)
+  {
+    if (expression.commands[0].parts[0] == "cd")
+    {
+      string newDirectory = expression.commands[0].parts[1];
 
-  // External commands, executed with fork():
-  // Loop over all commandos, and connect the output and input of the forked processes
+      int rc = chdir(newDirectory.c_str());
 
-  // For now, we just execute the first command in the expression. Disable.
-  execute_command(expression.commands[0]);
+      // char tmp[256]; // DO NOT DELETE, code to delete current working dir;
+      // getcwd(tmp, 256); // DO NOT DELETE, code to delete current working dir;
+      if (rc < 0)
+      {
+        cout << "Something went wrong changing the current directory :)" << endl;
+        return 0;
+      }
 
-  return 0;
+      cout << "Current working directory changed to: " << newDirectory << endl;
+      return rc;
+    }
+    else if (expression.commands[0].parts[0] == "exit")
+    {
+      return -2;
+    }
+    else
+    {
+      int rc = execute_command(expression.commands[0]);
+      if (rc == -1)
+      {
+        cout << "Not a command, please don't crash my shell :)" << endl;
+        return 0;
+      }
+
+      return rc;
+    }
+    return 0;
+  }
 }
 
 // framework for executing "date | tail -c 5" using raw commands
@@ -216,24 +246,48 @@ int step1(bool showPrompt)
 
 int shell(bool showPrompt)
 {
+  int status = 1; // keep it running
+
   while (cin.good())
   {
-    pid_t pid = fork();
-    if (pid == 0)
+    if (status > 0)
     {
-      string commandLine = request_command_line(showPrompt);
-      Expression expression = parse_command_line(commandLine);
+      pid_t pid = fork();
 
-      int rc = execute_expression(expression);
+      cout << pid << endl;
 
-      if (rc == 0)
+      if (pid == 0)
       {
-        cout << "Not a command, please don't crash my shell :)" << endl;
+        string commandLine = request_command_line(showPrompt);
+        Expression expression = parse_command_line(commandLine);
+
+        if (expression.background)
+        {
+          pid_t pid2 = fork();
+          if (pid2 == 0)
+          {
+            setpgid(0, 0);
+            execute_expression(expression);
+          }
+        }
+        else
+        {
+          wait(NULL);
+          int rc = execute_expression(expression);
+          if (rc == -2)
+          {
+            status = 0;
+          }
+        }
+      }
+      else
+      {
+        wait(NULL);
       }
     }
     else
     {
-      wait(NULL);
+      kill(getppid(), 1);
     }
   }
   return 0;
