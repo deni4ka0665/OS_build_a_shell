@@ -1,9 +1,8 @@
 {
+    "cmake.sourceDirectory": "${workspaceFolder}/assignment1-main",
     "files.associations": {
         "iostream": "cpp",
         "ostream": "cpp",
-        "cmath": "cpp",
-        "future": "cpp",
         "array": "cpp",
         "atomic": "cpp",
         "bit": "cpp",
@@ -11,6 +10,7 @@
         "cctype": "cpp",
         "chrono": "cpp",
         "clocale": "cpp",
+        "cmath": "cpp",
         "condition_variable": "cpp",
         "cstdarg": "cpp",
         "cstddef": "cpp",
@@ -41,6 +41,7 @@
         "type_traits": "cpp",
         "utility": "cpp",
         "fstream": "cpp",
+        "future": "cpp",
         "initializer_list": "cpp",
         "iosfwd": "cpp",
         "istream": "cpp",

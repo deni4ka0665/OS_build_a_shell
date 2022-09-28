@@ -17,7 +17,6 @@
 
 // function/class definitions you are going to use
 #include <iostream>
-#include <unistd.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,6 +25,9 @@
 #include <signal.h>
 #include <string.h>
 #include <assert.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <future>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -162,13 +164,29 @@ Expression parse_command_line(string commandLine)
   return expression;
 }
 
+void *task1(void *arg)
+{
+  Expression exp = *(Expression *)arg;
+  if (exp.commands.size() == 0)
+    return 0;
+
+  std::future<int> newThread = std::async(std::launch::async, execute_command, exp.commands[0]);
+
+  cout << "Hello worldk 2" << endl;
+  if (newThread.get() < 0)
+  {
+    cout << "Oops,the command failed, please try again  :)" << endl;
+  }
+}
+
 int execute_expression(Expression &expression)
 {
+
   // Check for empty expression
   if (expression.commands.size() == 0)
     return EINVAL;
 
-  if (expression.commands[0].parts.size() > 1)
+  if (expression.commands[0].parts.size() > 0)
   {
     if (expression.commands[0].parts[0] == "cd")
     {
@@ -187,7 +205,9 @@ int execute_expression(Expression &expression)
       cout << "Current working directory changed to: " << newDirectory << endl;
       return rc;
     }
-    return 0;
+
+    int rc = execute_command(expression.commands[0]);
+    return rc;
   }
   else
   {
@@ -239,15 +259,32 @@ int step1(bool showPrompt)
 
 int shell(bool showPrompt)
 {
+
   while (cin.good())
   {
     pid_t pid = fork();
+    int status;
+
     if (pid == 0)
     {
       string commandLine = request_command_line(showPrompt);
       Expression expression = parse_command_line(commandLine);
 
-      int rc = execute_expression(expression);
+      if (expression.background)
+      {
+        pid_t pid2 = fork();
+        cout << pid2 + "grandchild" << endl;
+        if (pid2 == 0)
+        {
+          setpgid(0, 0);
+          execute_expression(expression);
+        }
+      }
+      else
+      {
+        wait(NULL);
+        execute_expression(expression);
+      }
     }
     else
     {
