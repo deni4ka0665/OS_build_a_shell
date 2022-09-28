@@ -190,6 +190,10 @@ int execute_expression(Expression &expression)
       cout << "Current working directory changed to: " << newDirectory << endl;
       return rc;
     }
+    else if (expression.commands[0].parts[0] == "exit")
+    {
+      return -2;
+    }
     else
     {
       int rc = execute_command(expression.commands[0]);
@@ -242,35 +246,48 @@ int step1(bool showPrompt)
 
 int shell(bool showPrompt)
 {
+  int status = 1; // keep it running
 
   while (cin.good())
   {
-    pid_t pid = fork();
-    int status;
-
-    if (pid == 0)
+    if (status > 0)
     {
-      string commandLine = request_command_line(showPrompt);
-      Expression expression = parse_command_line(commandLine);
+      pid_t pid = fork();
 
-      if (expression.background)
+      cout << pid << endl;
+
+      if (pid == 0)
       {
-        pid_t pid2 = fork();
-        if (pid2 == 0)
+        string commandLine = request_command_line(showPrompt);
+        Expression expression = parse_command_line(commandLine);
+
+        if (expression.background)
         {
-          setpgid(0, 0);
-          execute_expression(expression);
+          pid_t pid2 = fork();
+          if (pid2 == 0)
+          {
+            setpgid(0, 0);
+            execute_expression(expression);
+          }
+        }
+        else
+        {
+          wait(NULL);
+          int rc = execute_expression(expression);
+          if (rc == -2)
+          {
+            status = 0;
+          }
         }
       }
       else
       {
         wait(NULL);
-        execute_expression(expression);
       }
     }
     else
     {
-      wait(NULL);
+      kill(getppid(), 1);
     }
   }
   return 0;
