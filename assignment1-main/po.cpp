@@ -28,7 +28,6 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <future>
-#include <fstream>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -195,7 +194,6 @@ int execute_expression(Expression &expression)
     {
       return -2;
     }
-
     else
     {
       int rc = execute_command(expression.commands[0]);
@@ -248,110 +246,48 @@ int step1(bool showPrompt)
 
 int shell(bool showPrompt)
 {
-  int status = 1; // keep it running
+
   while (cin.good())
   {
-    if (status > 0)
+
+    int fd[2];
+    if (pipe(fd) == -1)
     {
-      int fd[2];
-      int file;
-      if (pipe(fd) == -1)
-      {
-        cout << "Error has occured" << endl;
-      }
+      cout << "Error has occured" << endl;
+    }
 
-      string commandLine = request_command_line(showPrompt);
-      Expression expression = parse_command_line(commandLine);
+    string commandLine = request_command_line(showPrompt);
+    Expression expression = parse_command_line(commandLine);
 
-      pid_t pid0 = fork();
-      if (pid0 == 0)
-      {
-        if (expression.commands.size() > 1 || expression.outputToFile != "")
-        {
-          dup2(fd[1], STDOUT_FILENO);
-          close(fd[0]);
-          close(fd[1]);
-          execute_command(expression.commands[0]);
-        }
-        else
-        {
-          int rc = execute_expression(expression);
-          if (rc == -2)
-          {
-            status = 0;
-          }
-        }
-      }
+    pid_t pid0 = fork();
+    if (pid0 == 0)
+    {
+      int rc = execute_command(expression.commands[0]);
 
-      if (expression.background)
-      {
-        pid_t pid2 = fork();
-        if (pid2 == 0)
-        {
-          setpgid(0, 0);
-          execute_expression(expression);
-        }
-      }
-      else if (expression.outputToFile != "")
-      {
-        pid_t pid1 = fork();
-        if (pid1 == 0)
-        {
-          if (dup2(fd[0], STDIN_FILENO) == -1)
-          {
-            perror("Failed to redirect stdin of writing to file");
-            return 1;
-          }
-          else if ((close(fd[0]) == -1) || (close(fd[1]) == -1))
-          {
-            perror("Failed to close extra pipe file descriptors");
-            return 1;
-          }
-          else
-          {
-            file = open(expression.outputToFile.c_str(), O_WRONLY | O_CREAT, S_IRWXU);
-
-            char buffer[4096];
-
-            read(STDIN_FILENO, buffer, 4096);
-
-            write(file, buffer, 4096);
-            close(fd[0]);
-            close(fd[1]);
-            close(file);
-          }
-        }
-
-        close(fd[0]);
-        close(fd[1]);
-
-        waitpid(pid1, NULL, 0);
-      }
-      else if (expression.commands.size() > 1)
-      {
-        pid_t pid1 = fork();
-        if (pid1 == 0)
-        {
-          dup2(fd[0], STDIN_FILENO);
-          close(fd[0]);
-          close(fd[1]);
-          execute_command(expression.commands[1]);
-        }
-
-        close(fd[0]);
-        close(fd[1]);
-
-        waitpid(pid0, NULL, 0);
-        waitpid(pid1, NULL, 0);
-      }
-      else
-      {
-        waitpid(pid0, NULL, 0);
-      }
+      cout << rc << endl;
+      close(fd[0]);
+      write(fd[1], &rc, sizeof(int));
     }
     else
     {
-      kill(getppid(), 1);
+      waitpid(pid0, NULL, 0);
+    }
+
+    pid_t pid1 = fork();
+    if (pid1 == 0)
+    {
+      cout << "Hello" << endl;
+      string y;
+      close(fd[1]);
+      read(fd[0], &y, sizeof(int));
+      close(fd[0]);
+      cout << "Hello 123" << endl;
+      // cout << y << endl;
+      int rc = execute_expression(expression);
+    }
+    else
+    {
+      waitpid(pid1, NULL, 0);
     }
   }
   return 0;
