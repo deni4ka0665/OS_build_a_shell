@@ -2,11 +2,11 @@
   * Shell framework
   * course Operating Systems
   * Radboud University
-  * v22.09.05
+  * v02.10.22
 
   Student names:
-  - ...
-  - ...
+  - Denitsa Pavlova
+  - Bezayite Amenu
 */
 
 /**
@@ -167,24 +167,21 @@ Expression parse_command_line(string commandLine)
 
 int execute_expression(Expression &expression)
 {
-
-  // Check for empty expression
   if (expression.commands.size() == 0)
     return EINVAL;
 
   if (expression.commands[0].parts.size() > 0)
   {
+    // if expression is cd to change directories.
     if (expression.commands[0].parts[0] == "cd")
     {
       string newDirectory = expression.commands[0].parts[1];
 
       int rc = chdir(newDirectory.c_str());
 
-      // char tmp[256]; // DO NOT DELETE, code to delete current working dir;
-      // getcwd(tmp, 256); // DO NOT DELETE, code to delete current working dir;
       if (rc < 0)
       {
-        cout << "Something went wrong changing the current directory :)" << endl;
+        cout << "Something went wrong changing the current directory." << endl;
         return 0;
       }
 
@@ -201,7 +198,7 @@ int execute_expression(Expression &expression)
       int rc = execute_command(expression.commands[0]);
       if (rc == -1)
       {
-        cout << "Not a command, please don't crash my shell :)" << endl;
+        cout << "Not a command." << endl;
         return 0;
       }
 
@@ -246,18 +243,21 @@ int step1(bool showPrompt)
   return 0;
 }
 
+#define READ_END 0
+#define WRITE_END 1
+#define ENDS 2
 int shell(bool showPrompt)
 {
-  int status = 1; // keep it running
+  int status = 1; // as long as status code is equal to 1 the command will keep running
   while (cin.good())
   {
     if (status > 0)
     {
-      int fd[2];
+      int fd[ENDS];
       int file;
-      if (pipe(fd) == -1)
+      if (pipe(fd) == -1) // create pipe
       {
-        cout << "Error has occured" << endl;
+        cout << "An error has occured" << endl;
       }
 
       string commandLine = request_command_line(showPrompt);
@@ -268,17 +268,21 @@ int shell(bool showPrompt)
       {
         if (expression.commands.size() > 1 || expression.outputToFile != "")
         {
-          dup2(fd[1], STDOUT_FILENO);
-          close(fd[0]);
-          close(fd[1]);
+          dup2(fd[WRITE_END], STDOUT_FILENO); // write the output of the command
+          close(fd[READ_END]);                // close all ends of pipe
+          close(fd[WRITE_END]);
           execute_command(expression.commands[0]);
         }
         else
         {
           int rc = execute_expression(expression);
-          if (rc == -2)
+          if (rc == -2) // when rc = -2; exit command has been entered
           {
-            status = 0;
+            status = 0; // when status is equal to 0, shell will exit
+          }
+          else if (rc < 0)
+          {
+            cout << "Something went wrong!" << endl;
           }
         }
       }
@@ -288,7 +292,7 @@ int shell(bool showPrompt)
         pid_t pid2 = fork();
         if (pid2 == 0)
         {
-          setpgid(0, 0);
+          setpgid(0, 0); // change the group id to enable the process running background.
           execute_expression(expression);
         }
       }
@@ -297,61 +301,62 @@ int shell(bool showPrompt)
         pid_t pid1 = fork();
         if (pid1 == 0)
         {
-          if (dup2(fd[0], STDIN_FILENO) == -1)
+          if (dup2(fd[READ_END], STDIN_FILENO) == -1)
           {
-            perror("Failed to redirect stdin of writing to file");
+            cout << "Failed to redirect stdin of writing to file" << endl;
             return 1;
           }
-          else if ((close(fd[0]) == -1) || (close(fd[1]) == -1))
+          else if ((close(fd[READ_END]) == -1) || (close(fd[WRITE_END]) == -1))
           {
-            perror("Failed to close extra pipe file descriptors");
+            cout << "Failed to close pipe file descriptors" << endl;
             return 1;
           }
           else
           {
-            file = open(expression.outputToFile.c_str(), O_WRONLY | O_CREAT, S_IRWXU);
+            file = open(expression.outputToFile.c_str(), O_WRONLY | O_TRUNC | O_CREAT);
 
-            char buffer[4096];
+            char buffer[4096]; // create a buffer - hard-coded number.
 
-            read(STDIN_FILENO, buffer, 4096);
+            read(STDIN_FILENO, buffer, 4096); // read and write to the buffer.
 
-            write(file, buffer, 4096);
-            close(fd[0]);
-            close(fd[1]);
+            write(file, buffer, 4096); // write to the file.
+            close(fd[READ_END]);       // close end of pipe
+            close(fd[WRITE_END]);
             close(file);
           }
         }
 
-        close(fd[0]);
-        close(fd[1]);
+        close(fd[READ_END]); // close both ends of pipe - code run by the parent process
+        close(fd[WRITE_END]);
 
-        waitpid(pid1, NULL, 0);
+        waitpid(pid1, NULL, 0); // waiting for the curr process to finish.
       }
       else if (expression.commands.size() > 1)
       {
         pid_t pid1 = fork();
         if (pid1 == 0)
         {
-          dup2(fd[0], STDIN_FILENO);
-          close(fd[0]);
-          close(fd[1]);
+          dup2(fd[READ_END], STDIN_FILENO);
+          close(fd[READ_END]); // close all ends of pipe
+          close(fd[WRITE_END]);
           execute_command(expression.commands[1]);
         }
 
-        close(fd[0]);
-        close(fd[1]);
+        close(fd[READ_END]); // close both ends of pipe - code run by the parent process
+        close(fd[WRITE_END]);
 
+        // wait for change in state to execute the processes
         waitpid(pid0, NULL, 0);
         waitpid(pid1, NULL, 0);
       }
       else
       {
-        waitpid(pid0, NULL, 0);
+        waitpid(pid0, NULL, 0); // else always late for change in the state of the child process to fork again and show terminal.
       }
     }
     else
     {
-      kill(getppid(), 1);
+      kill(getppid(), 1); // when status code is set to -2 the shell will stop execution.
     }
   }
   return 0;
